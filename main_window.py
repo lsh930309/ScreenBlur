@@ -42,7 +42,7 @@ class MainWindow(QWidget):
         self.setWindowIcon(app_icon)
 
         self.setWindowTitle("Screen Blur - 가리개")
-        self.setFixedSize(350, 280)
+        self.setFixedSize(350, 320)
 
         self.selection_overlay = None
         self.viewport = None
@@ -73,14 +73,16 @@ class MainWindow(QWidget):
         # 가리개 컨트롤 그룹
         control_group = QGroupBox("가리개 설정")
         control_layout = QVBoxLayout()
-        control_layout.setSpacing(8)
+        control_layout.setSpacing(10)
+        control_layout.setContentsMargins(10, 15, 10, 10)
 
         # 고정 체크박스
-        self.check_lock = QCheckBox("가리개 고정 (위치 && 크기)")
+        self.check_lock = QCheckBox("가리개 고정 (위치 & 크기)")
         self.check_lock.setChecked(False)
 
         # 모든 가리개 닫기 버튼
         self.close_all_button = QPushButton("모든 가리개 닫기")
+        self.close_all_button.setMinimumHeight(28)
 
         control_layout.addWidget(self.check_lock)
         control_layout.addWidget(self.close_all_button)
@@ -89,7 +91,8 @@ class MainWindow(QWidget):
         # 앱 설정 그룹
         settings_group = QGroupBox("앱 설정")
         settings_layout = QVBoxLayout()
-        settings_layout.setSpacing(8)
+        settings_layout.setSpacing(10)
+        settings_layout.setContentsMargins(10, 15, 10, 10)
 
         self.check_minimize_to_tray = QCheckBox("닫기 시 트레이로 최소화")
         # 저장된 설정 로드
