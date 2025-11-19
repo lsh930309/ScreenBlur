@@ -77,10 +77,14 @@ class SelectionOverlay(QWidget):
         """마우스 버튼에서 손을 뗐을 때 호출됩니다. 선택 완료 신호를 보냅니다."""
         if self.start_point and self.end_point:
             selection_rect = QRect(self.start_point, self.end_point).normalized()
-            
+
             # 너비와 높이가 0보다 큰 유효한 영역이 선택되었는지 확인
             if selection_rect.width() > 0 and selection_rect.height() > 0:
+                # 위젯 로컬 좌표를 전역 화면 좌표로 변환
+                global_top_left = self.mapToGlobal(selection_rect.topLeft())
+                global_rect = QRect(global_top_left, selection_rect.size())
+
                 # region_selected 시그널에 선택된 영역 정보를 담아 보냄
-                self.region_selected.emit(selection_rect)
-                
+                self.region_selected.emit(global_rect)
+
         self.close() # 영역 선택이 완료되면 오버레이 창을 닫음
