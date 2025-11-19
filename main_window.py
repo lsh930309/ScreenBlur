@@ -87,16 +87,9 @@ class MainWindow(QWidget):
 
         self.selection_overlay = SelectionOverlay()
         self.selection_overlay.region_selected.connect(self.create_viewport)
-        # 뷰포트 생성 후에는 메인 GUI를 다시 표시하지 않음 (트레이에서만 접근 가능)
-        # 선택이 취소된 경우(뷰포트 생성 없이 finished만 호출)에만 다시 표시
-        self.selection_overlay.finished.connect(self._on_selection_finished)
+        # 선택 작업 완료 시 메인 GUI를 항상 다시 표시
+        self.selection_overlay.finished.connect(self.show)
         self.selection_overlay.show()
-
-    def _on_selection_finished(self):
-        """선택 작업 완료 시 호출. 뷰포트가 생성되지 않은 경우에만 메인 GUI 표시."""
-        # 뷰포트가 생성되지 않았다면 메인 GUI를 다시 표시
-        if not self.viewport:
-            self.show()
         
     def create_viewport(self, rect: QRect):
         """선택된 영역에 블러 뷰포트를 생성합니다."""
