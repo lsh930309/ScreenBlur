@@ -41,8 +41,8 @@ class MainWindow(QWidget):
         app_icon = QIcon(resource_path("icon.ico"))
         self.setWindowIcon(app_icon)
 
-        self.setWindowTitle("Screen Blur - 가리개")
-        self.setFixedSize(350, 320)
+        self.setWindowTitle("Screen Blur")
+        self.setFixedSize(250, 350)
 
         self.selection_overlay = None
         self.viewport = None
@@ -55,13 +55,13 @@ class MainWindow(QWidget):
 
         # --- UI 구성 ---
         main_layout = QVBoxLayout(self)
-        main_layout.setSpacing(12)
-        main_layout.setContentsMargins(16, 16, 16, 16)
+        main_layout.setSpacing(10)
+        main_layout.setContentsMargins(10, 10, 10, 10)
 
         # 타이틀
         title_label = QLabel("화면 가리개")
         title_font = title_label.font()
-        title_font.setPointSize(12)
+        title_font.setPointSize(10)
         title_font.setBold(True)
         title_label.setFont(title_font)
         title_label.setAlignment(Qt.AlignCenter)
@@ -77,7 +77,7 @@ class MainWindow(QWidget):
         control_layout.setContentsMargins(10, 15, 10, 10)
 
         # 고정 체크박스
-        self.check_lock = QCheckBox("가리개 고정 (위치 & 크기)")
+        self.check_lock = QCheckBox("가리개 위치 고정")
         self.check_lock.setChecked(False)
 
         # 모든 가리개 닫기 버튼
