@@ -58,6 +58,15 @@ def apply_blur(hwnd):
     try:
         user32 = ctypes.windll.user32
         # SetWindowCompositionAttribute 함수를 호출하여 창에 블러 효과 적용
-        user32.SetWindowCompositionAttribute(hwnd, ctypes.byref(data))
+        result = user32.SetWindowCompositionAttribute(hwnd, ctypes.byref(data))
+        if not result:
+            print(f"경고: 블러 효과 적용 실패 (hwnd: {hwnd})")
+            print(f"      Windows 버전이 블러를 지원하지 않을 수 있습니다.")
+    except AttributeError as e:
+        print(f"오류: SetWindowCompositionAttribute 함수를 찾을 수 없습니다.")
+        print(f"      이 기능은 Windows 10 이상에서만 지원됩니다.")
+        print(f"      상세 오류: {e}")
     except Exception as e:
-        print(f"블러 효과 적용 중 오류 발생: {e}")
+        print(f"오류: 블러 효과 적용 중 예상치 못한 오류 발생")
+        print(f"      hwnd: {hwnd}")
+        print(f"      상세 오류: {type(e).__name__}: {e}")

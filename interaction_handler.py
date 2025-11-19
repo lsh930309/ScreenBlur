@@ -28,24 +28,29 @@ class InteractionHandler(QWidget):
     def contextMenuEvent(self, event):
         """우클릭 시 컨텍스트 메뉴를 표시합니다."""
         context_menu = QMenu(self)
-        
+
         always_on_top_action = QAction("항상 위에 표시", self, checkable=True)
         always_on_top_action.setChecked(self.blur_window.is_always_on_top)
-        
+
         lock_position_action = QAction("위치 잠금", self, checkable=True)
         lock_position_action.setChecked(self.blur_window.is_position_locked)
-        
+
+        lock_size_action = QAction("크기 잠금", self, checkable=True)
+        lock_size_action.setChecked(self.blur_window.is_size_locked)
+
         always_on_top_action.triggered.connect(self.blur_window.set_always_on_top)
         lock_position_action.triggered.connect(self.blur_window.set_position_lock)
-        
+        lock_size_action.triggered.connect(self.blur_window.set_size_lock)
+
         close_action = QAction("뷰포트 닫기", self)
         close_action.triggered.connect(self.blur_window.close)
-        
+
         context_menu.addAction(always_on_top_action)
         context_menu.addAction(lock_position_action)
+        context_menu.addAction(lock_size_action)
         context_menu.addSeparator()
         context_menu.addAction(close_action)
-        
+
         context_menu.exec(event.globalPos())
         
     def mousePressEvent(self, event):

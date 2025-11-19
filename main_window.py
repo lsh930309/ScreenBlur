@@ -1,6 +1,8 @@
 # main_window.py
 
-from PySide6.QtWidgets import (QWidget, QPushButton, QVBoxLayout, QGroupBox, 
+import os
+import sys
+from PySide6.QtWidgets import (QWidget, QPushButton, QVBoxLayout, QGroupBox,
                                QCheckBox, QFormLayout, QApplication, QHBoxLayout)
 from PySide6.QtCore import QRect
 from PySide6.QtGui import QCloseEvent, QIcon
@@ -9,6 +11,18 @@ from viewport import Viewport
 from selection_overlay import SelectionOverlay
 from system_tray import SystemTrayIcon
 from interaction_handler import InteractionHandler
+
+def resource_path(relative_path):
+    """PyInstaller 환경에서 올바른 리소스 경로를 반환합니다.
+
+    PyInstaller로 패키징된 경우 임시 폴더(_MEIPASS)에서 실행되므로
+    리소스 파일 경로를 올바르게 찾기 위해 이 함수를 사용합니다.
+    """
+    if hasattr(sys, '_MEIPASS'):
+        # PyInstaller 환경: 임시 디렉토리 사용
+        return os.path.join(sys._MEIPASS, relative_path)
+    # 개발 환경: 현재 디렉토리 사용
+    return os.path.join(os.path.abspath("."), relative_path)
 
 class MainWindow(QWidget):
     """메인 애플리케이션 창 클래스"""
@@ -19,7 +33,8 @@ class MainWindow(QWidget):
         self._is_quitting = False
 
         # --- 아이콘 설정 ---
-        app_icon = QIcon("icon.ico")
+        # PyInstaller 환경 대응: 올바른 리소스 경로 사용
+        app_icon = QIcon(resource_path("icon.ico"))
         self.setWindowIcon(app_icon)
 
         self.setWindowTitle("블러 뷰포트 컨트롤러")
@@ -81,8 +96,26 @@ class MainWindow(QWidget):
         self.selection_overlay.show()
         
     def create_viewport(self, rect: QRect):
+        # 좌표 유효성 검증 (멀티 모니터 환경 대응)
+        # virtualGeometry()는 음수 좌표를 반환할 수 있음
+        if rect.width() <= 0 or rect.height() <= 0:
+            print(f"경고: 유효하지 않은 뷰포트 크기 - width: {rect.width()}, height: {rect.height()}")
+            return
+
+        # 극단적인 음수 좌표 검증 (오류 방지)
+        if rect.x() < -10000 or rect.y() < -10000 or rect.x() > 10000 or rect.y() > 10000:
+            print(f"경고: 유효하지 않은 좌표 범위 - x: {rect.x()}, y: {rect.y()}")
+            return
+
+        # 이전 뷰포트가 있다면 명시적으로 삭제
         if self.viewport:
             self.viewport.close()
+            self.viewport.deleteLater()
+            self.viewport = None
+        if self.interaction_handler:
+            self.interaction_handler.close()
+            self.interaction_handler.deleteLater()
+            self.interaction_handler = None
 
         self.viewport = Viewport()
         self.interaction_handler = InteractionHandler(self.viewport)
@@ -92,10 +125,11 @@ class MainWindow(QWidget):
 
         self.viewport.destroyed.connect(self.interaction_handler.close)
         self.viewport.destroyed.connect(self.on_viewport_closed)
-        
+
         self.update_viewport_from_ui()
-        
+
         self.viewport.show()
+        self.interaction_handler.show()  # 컨트롤러 표시 (필수!)
 
     def toggle_interaction_visibility(self, checked):
         if self.interaction_handler:
