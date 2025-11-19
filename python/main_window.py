@@ -157,7 +157,13 @@ class MainWindow(QWidget):
         # --- UI 레이아웃 기반 최적 크기 자동 계산 및 고정 ---
         self.adjustSize()  # 레이아웃이 필요로 하는 크기로 창 크기 조정
         optimal_size = self.size()  # 조정된 크기 가져오기
-        self.setFixedSize(optimal_size)  # 해당 크기로 고정
+
+        # 최소 가로폭 260 적용
+        min_width = 260
+        final_width = max(optimal_size.width(), min_width)
+        final_height = optimal_size.height()
+
+        self.setFixedSize(final_width, final_height)  # 해당 크기로 고정
 
     def quit_application(self):
         """애플리케이션을 종료합니다."""
