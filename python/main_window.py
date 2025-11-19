@@ -42,7 +42,6 @@ class MainWindow(QWidget):
         self.setWindowIcon(app_icon)
 
         self.setWindowTitle("Screen Blur")
-        self.setFixedSize(250, 350)
 
         self.selection_overlay = None
         self.viewport = None
@@ -66,50 +65,85 @@ class MainWindow(QWidget):
         title_label.setFont(title_font)
         title_label.setAlignment(Qt.AlignCenter)
 
-        # 가리개 생성 버튼
-        self.create_viewport_button = QPushButton("새 가리개 생성")
+        # 버튼 레이아웃 (가리개 생성 + 모든 가리개 닫기)
+        button_layout = QHBoxLayout()
+        button_layout.setSpacing(10)
+
+        # 가리개 생성 버튼 (초록색 배경)
+        self.create_viewport_button = QPushButton("가리개 생성")
         self.create_viewport_button.setMinimumHeight(40)
+        self.create_viewport_button.setStyleSheet("""
+            QPushButton {
+                background-color: #28a745;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #218838;
+            }
+            QPushButton:pressed {
+                background-color: #1e7e34;
+            }
+        """)
 
-        # 가리개 컨트롤 그룹
-        control_group = QGroupBox("가리개 설정")
-        control_layout = QVBoxLayout()
-        control_layout.setSpacing(10)
-        control_layout.setContentsMargins(10, 15, 10, 10)
+        # 모든 가리개 닫기 버튼 (빨간색 배경)
+        self.close_all_button = QPushButton("모든 가리개 닫기")
+        self.close_all_button.setMinimumHeight(40)
+        self.close_all_button.setStyleSheet("""
+            QPushButton {
+                background-color: #dc3545;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #c82333;
+            }
+            QPushButton:pressed {
+                background-color: #bd2130;
+            }
+        """)
 
-        # 고정 체크박스
+        button_layout.addWidget(self.create_viewport_button)
+        button_layout.addWidget(self.close_all_button)
+
+        # 체크박스 옵션들 (그룹 없이 심플하게)
         self.check_lock = QCheckBox("가리개 위치 고정")
         self.check_lock.setChecked(False)
 
-        # 모든 가리개 닫기 버튼
-        self.close_all_button = QPushButton("모든 가리개 닫기")
-        self.close_all_button.setMinimumHeight(28)
-
-        control_layout.addWidget(self.check_lock)
-        control_layout.addWidget(self.close_all_button)
-        control_group.setLayout(control_layout)
-
-        # 앱 설정 그룹
-        settings_group = QGroupBox("앱 설정")
-        settings_layout = QVBoxLayout()
-        settings_layout.setSpacing(10)
-        settings_layout.setContentsMargins(10, 15, 10, 10)
-
         self.check_minimize_to_tray = QCheckBox("닫기 시 트레이로 최소화")
-        # 저장된 설정 로드
         self.check_minimize_to_tray.setChecked(self.settings.get("minimize_to_tray", True))
 
-        settings_layout.addWidget(self.check_minimize_to_tray)
-        settings_group.setLayout(settings_layout)
-
-        # 프로그램 종료 버튼
+        # 프로그램 종료 버튼 (주황색 배경, bold)
         self.quit_button = QPushButton("프로그램 종료")
-        self.quit_button.setMinimumHeight(32)
+        self.quit_button.setMinimumHeight(40)
+        quit_font = self.quit_button.font()
+        quit_font.setBold(True)
+        self.quit_button.setFont(quit_font)
+        self.quit_button.setStyleSheet("""
+            QPushButton {
+                background-color: #ff8c00;
+                color: white;
+                border: none;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #e67e00;
+            }
+            QPushButton:pressed {
+                background-color: #cc7000;
+            }
+        """)
 
         # 레이아웃에 위젯 추가
         main_layout.addWidget(title_label)
-        main_layout.addWidget(self.create_viewport_button)
-        main_layout.addWidget(control_group)
-        main_layout.addWidget(settings_group)
+        main_layout.addLayout(button_layout)
+        main_layout.addSpacing(10)
+        main_layout.addWidget(self.check_lock)
+        main_layout.addWidget(self.check_minimize_to_tray)
         main_layout.addStretch()
         main_layout.addWidget(self.quit_button)
 
@@ -119,6 +153,17 @@ class MainWindow(QWidget):
         self.close_all_button.clicked.connect(self.close_viewport)
         self.check_minimize_to_tray.toggled.connect(self.handle_minimize_to_tray_toggled)
         self.quit_button.clicked.connect(self.quit_application)
+
+        # --- UI 레이아웃 기반 최적 크기 자동 계산 및 고정 ---
+        self.adjustSize()  # 레이아웃이 필요로 하는 크기로 창 크기 조정
+        optimal_size = self.size()  # 조정된 크기 가져오기
+
+        # 최소 가로폭 260 적용
+        min_width = 260
+        final_width = max(optimal_size.width(), min_width)
+        final_height = optimal_size.height()
+
+        self.setFixedSize(final_width, final_height)  # 해당 크기로 고정
 
     def quit_application(self):
         """애플리케이션을 종료합니다."""

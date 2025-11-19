@@ -17,6 +17,8 @@ dist/
 *.spec
 
 # Release builds
+# Latest versions: release/*.zip, release/*.exe
+# Archives: release/archives/portable/, release/archives/installer/
 release/
 
 # IDE

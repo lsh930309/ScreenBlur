@@ -1,8 +1,9 @@
 # build.py
 
 """
-ScreenBlur 빌드 스크립트
-PyInstaller를 사용하여 실행 파일을 생성하고 버전 관리를 자동화합니다.
+ScreenBlur 빌드 및 패키징 스크립트
+PyInstaller를 사용하여 실행 파일을 생성하고,
+Portable 버전(zip)과 Setup 버전(exe)을 자동으로 패키징합니다.
 """
 
 import os
@@ -12,12 +13,15 @@ import subprocess
 from pathlib import Path
 from datetime import datetime
 import re
+import zipfile
 
 class BuildManager:
     def __init__(self):
         self.root_dir = Path(__file__).parent
         self.release_dir = self.root_dir / "release"
-        self.archive_dir = self.release_dir / "archive"
+        self.archive_dir = self.release_dir / "archives"
+        self.portable_archive_dir = self.archive_dir / "portable"
+        self.installer_archive_dir = self.archive_dir / "installer"
         self.build_dir = self.root_dir / "build"
         self.dist_dir = self.root_dir / "dist"
 
@@ -26,10 +30,15 @@ class BuildManager:
         self.venv_python = self.venv_dir / "Scripts" / "python.exe"
         self.venv_pip = self.venv_dir / "Scripts" / "pip.exe"
 
+        # Inno Setup 기본 경로
+        self.inno_setup_path = Path(r"C:\Program Files (x86)\Inno Setup 6\ISCC.exe")
+
     def ensure_directories(self):
         """필요한 디렉토리 생성"""
         self.release_dir.mkdir(exist_ok=True)
         self.archive_dir.mkdir(exist_ok=True)
+        self.portable_archive_dir.mkdir(parents=True, exist_ok=True)
+        self.installer_archive_dir.mkdir(parents=True, exist_ok=True)
         print(f"✓ 디렉토리 확인 완료")
 
     def check_venv(self):
@@ -46,72 +55,94 @@ class BuildManager:
 
         print(f"✓ 가상 환경 확인 완료: {self.venv_dir}")
 
-    def install_pyinstaller(self):
-        """PyInstaller 설치 확인 및 설치"""
+    def install_dependencies(self):
+        """requirements.txt의 의존성 설치"""
+        requirements_file = self.root_dir / "requirements.txt"
+
+        if not requirements_file.exists():
+            print("❌ requirements.txt 파일을 찾을 수 없습니다.")
+            sys.exit(1)
+
+        print("의존성을 확인하고 설치합니다...")
         try:
-            result = subprocess.run(
-                [str(self.venv_python), "-m", "pip", "show", "pyinstaller"],
+            subprocess.run(
+                [str(self.venv_pip), "install", "-r", str(requirements_file)],
+                check=True,
                 capture_output=True,
                 text=True
             )
-
-            if result.returncode == 0:
-                print("✓ PyInstaller가 이미 설치되어 있습니다.")
-                return
-        except Exception:
-            pass
-
-        print("PyInstaller를 설치합니다...")
-        try:
-            subprocess.run(
-                [str(self.venv_pip), "install", "pyinstaller"],
-                check=True
-            )
-            print("✓ PyInstaller 설치 완료")
+            print("✓ 의존성 설치 완료")
         except subprocess.CalledProcessError as e:
-            print(f"❌ PyInstaller 설치 실패: {e}")
+            print(f"❌ 의존성 설치 실패: {e}")
+            print(f"   에러 출력: {e.stderr}")
             sys.exit(1)
 
-    def get_next_version(self):
-        """다음 버전 번호 생성"""
-        # release 폴더에서 기존 exe 파일 찾기
-        pattern = re.compile(r"ScreenBlur_v(\d+\.\d+\.\d+)\.exe")
+    def get_version_from_user(self):
+        """사용자로부터 버전 입력 받기"""
+        # 기존 버전 찾기
+        pattern = re.compile(r"screenblur_v(\d+\.\d+\.\d+)_portable\.zip")
         versions = []
 
         if self.release_dir.exists():
-            for file in self.release_dir.glob("*.exe"):
+            for file in self.release_dir.glob("*.zip"):
                 match = pattern.match(file.name)
                 if match:
                     versions.append(match.group(1))
 
-        if not versions:
-            return "1.0.0"
+        if versions:
+            latest = sorted(versions, key=lambda v: [int(x) for x in v.split('.')])[-1]
+            major, minor, patch = map(int, latest.split('.'))
+            suggested_version = f"{major}.{minor}.{patch + 1}"
+        else:
+            suggested_version = "1.0.0"
 
-        # 가장 최신 버전 찾기
-        latest = sorted(versions, key=lambda v: [int(x) for x in v.split('.')])[-1]
-        major, minor, patch = map(int, latest.split('.'))
+        print(f"\n현재 최신 버전: {latest if versions else '없음'}")
+        print(f"제안 버전: {suggested_version}")
 
-        # 패치 버전 증가
-        return f"{major}.{minor}.{patch + 1}"
+        while True:
+            version_input = input(f"빌드할 버전을 입력하세요 (Enter={suggested_version}): ").strip()
+
+            if not version_input:
+                version = suggested_version
+                break
+
+            # 버전 형식 검증
+            if re.match(r'^\d+\.\d+\.\d+$', version_input):
+                version = version_input
+                break
+            else:
+                print("❌ 잘못된 버전 형식입니다. (예: 1.0.0)")
+
+        return version
 
     def archive_old_versions(self):
-        """이전 버전을 archive 폴더로 이동"""
-        if not self.release_dir.exists():
-            return
+        """이전 버전을 archives 폴더로 이동"""
+        moved_count = 0
 
-        exe_files = list(self.release_dir.glob("*.exe"))
+        # Portable 버전 아카이브 (release/*.zip)
+        if self.release_dir.exists():
+            zip_files = [f for f in self.release_dir.glob("*_portable.zip") if f.is_file()]
+            for zip_file in zip_files:
+                dest = self.portable_archive_dir / zip_file.name
+                shutil.move(str(zip_file), str(dest))
+                print(f"  → {zip_file.name} (portable)")
+                moved_count += 1
 
-        if exe_files:
-            print(f"이전 버전 {len(exe_files)}개를 아카이브로 이동합니다...")
-            for exe_file in exe_files:
-                dest = self.archive_dir / exe_file.name
-                shutil.move(str(exe_file), str(dest))
-                print(f"  → {exe_file.name}")
-            print("✓ 아카이브 완료")
+        # Setup 버전 아카이브 (release/*_setup.exe)
+        if self.release_dir.exists():
+            setup_files = [f for f in self.release_dir.glob("*_setup.exe") if f.is_file()]
+            for setup_file in setup_files:
+                dest = self.installer_archive_dir / setup_file.name
+                shutil.move(str(setup_file), str(dest))
+                print(f"  → {setup_file.name} (installer)")
+                moved_count += 1
+
+        if moved_count > 0:
+            print(f"✓ {moved_count}개 파일 아카이브 완료")
 
     def build_executable(self, version):
         """PyInstaller로 실행 파일 빌드"""
-        output_name = f"ScreenBlur_v{version}"
+        output_name = "ScreenBlur"
 
         # PyInstaller 명령 구성
         cmd = [
@@ -134,7 +165,7 @@ class BuildManager:
             "main.py"
         ]
 
-        print(f"\n빌드 시작: {output_name}")
+        print(f"\n빌드 시작: {output_name} v{version}")
         print("=" * 60)
 
         try:
@@ -146,33 +177,81 @@ class BuildManager:
             print(f"❌ 빌드 실패: {e}")
             return False
 
-    def move_to_release(self, version):
-        """빌드 결과를 release 폴더로 이동"""
-        output_name = f"ScreenBlur_v{version}"
-        dist_folder = self.dist_dir / output_name
+    def create_portable_package(self, version):
+        """Portable 버전 ZIP 파일 생성"""
+        print(f"\nPortable 버전 패키징 중...")
 
+        dist_folder = self.dist_dir / "ScreenBlur"
         if not dist_folder.exists():
             print(f"❌ 빌드 결과를 찾을 수 없습니다: {dist_folder}")
             return False
 
-        # release 폴더로 복사
-        release_folder = self.release_dir / output_name
+        zip_filename = f"screenblur_v{version}_portable.zip"
+        zip_path = self.release_dir / zip_filename
 
-        if release_folder.exists():
-            shutil.rmtree(release_folder)
+        # ZIP 파일 생성
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for root, dirs, files in os.walk(dist_folder):
+                for file in files:
+                    file_path = Path(root) / file
+                    arcname = file_path.relative_to(dist_folder.parent)
+                    zipf.write(file_path, arcname)
 
-        shutil.copytree(dist_folder, release_folder)
-        print(f"✓ 결과물을 release 폴더로 이동: {release_folder}")
-
-        # 실행 파일 직접 링크 생성 (편의성)
-        exe_src = release_folder / f"{output_name}.exe"
-        exe_dest = self.release_dir / f"{output_name}.exe"
-
-        if exe_src.exists():
-            shutil.copy2(exe_src, exe_dest)
-            print(f"✓ 실행 파일 생성: {exe_dest.name}")
-
+        print(f"✓ Portable 버전 생성: {zip_filename}")
+        print(f"   파일 크기: {zip_path.stat().st_size / 1024 / 1024:.2f} MB")
         return True
+
+    def create_setup_package(self, version):
+        """Inno Setup을 사용하여 Setup 버전 생성"""
+        print(f"\nSetup 버전 패키징 중...")
+
+        # Inno Setup 확인
+        if not self.inno_setup_path.exists():
+            print(f"⚠️  Inno Setup을 찾을 수 없습니다: {self.inno_setup_path}")
+            print("   Inno Setup이 설치되어 있지 않거나 다른 경로에 설치되어 있습니다.")
+
+            # 사용자에게 경로 입력 받기
+            custom_path = input("Inno Setup ISCC.exe 경로를 입력하세요 (건너뛰려면 Enter): ").strip()
+
+            if custom_path:
+                self.inno_setup_path = Path(custom_path)
+                if not self.inno_setup_path.exists():
+                    print("❌ 입력한 경로에서 Inno Setup을 찾을 수 없습니다.")
+                    return False
+            else:
+                print("⏭️  Setup 버전 생성을 건너뜁니다.")
+                return False
+
+        # Inno Setup 스크립트 실행
+        iss_file = self.root_dir / "installer.iss"
+        if not iss_file.exists():
+            print(f"❌ Inno Setup 스크립트를 찾을 수 없습니다: {iss_file}")
+            return False
+
+        try:
+            cmd = [
+                str(self.inno_setup_path),
+                f"/DMyAppVersion={version}",
+                str(iss_file)
+            ]
+
+            result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+            print("✓ Setup 버전 생성 완료")
+
+            # 생성된 setup 파일 찾기
+            setup_filename = f"screenblur_v{version}_setup.exe"
+            setup_file = self.release_dir / setup_filename
+
+            if setup_file.exists():
+                print(f"   파일 크기: {setup_file.stat().st_size / 1024 / 1024:.2f} MB")
+
+            return True
+        except subprocess.CalledProcessError as e:
+            print(f"❌ Setup 생성 실패: {e}")
+            return False
+        except Exception as e:
+            print(f"❌ 예상치 못한 오류: {e}")
+            return False
 
     def cleanup_build_artifacts(self):
         """빌드 부산물 정리"""
@@ -198,7 +277,7 @@ class BuildManager:
     def build(self):
         """전체 빌드 프로세스 실행"""
         print("=" * 60)
-        print("ScreenBlur 빌드 시작")
+        print("ScreenBlur 빌드 및 패키징")
         print("=" * 60)
         print()
 
@@ -208,14 +287,15 @@ class BuildManager:
         # 2. 가상 환경 확인
         self.check_venv()
 
-        # 3. PyInstaller 설치 확인
-        self.install_pyinstaller()
+        # 3. 의존성 설치
+        self.install_dependencies()
 
-        # 4. 버전 확인
-        version = self.get_next_version()
+        # 4. 버전 입력
+        version = self.get_version_from_user()
         print(f"\n📦 빌드 버전: v{version}")
 
         # 5. 이전 버전 아카이브
+        print(f"\n이전 버전을 아카이브로 이동합니다...")
         self.archive_old_versions()
 
         # 6. 빌드 실행
@@ -223,20 +303,29 @@ class BuildManager:
             print("\n❌ 빌드 실패")
             sys.exit(1)
 
-        # 7. Release 폴더로 이동
-        if not self.move_to_release(version):
-            print("\n❌ 결과물 이동 실패")
-            sys.exit(1)
+        # 7. Portable 버전 생성
+        portable_success = self.create_portable_package(version)
 
-        # 8. 부산물 정리
+        # 8. Setup 버전 생성
+        setup_success = self.create_setup_package(version)
+
+        # 9. 부산물 정리
         self.cleanup_build_artifacts()
 
         # 완료
         print("\n" + "=" * 60)
-        print("✅ 빌드 완료!")
+        print("✅ 빌드 및 패키징 완료!")
         print("=" * 60)
-        print(f"\n📂 결과물 위치: {self.release_dir / f'ScreenBlur_v{version}'}")
-        print(f"📄 실행 파일: {self.release_dir / f'ScreenBlur_v{version}.exe'}")
+
+        if portable_success:
+            print(f"\n📦 Portable 버전: release/screenblur_v{version}_portable.zip")
+
+        if setup_success:
+            print(f"💿 Setup 버전: release/screenblur_v{version}_setup.exe")
+
+        print(f"\n📁 이전 버전 아카이브:")
+        print(f"   - Portable: release/archives/portable/")
+        print(f"   - Installer: release/archives/installer/")
         print()
 
 if __name__ == "__main__":

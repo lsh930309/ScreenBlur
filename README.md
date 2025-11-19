@@ -91,19 +91,68 @@ ScreenBlur/
 └── requirements.txt      # 의존성 목록
 ```
 
-## 🔧 빌드
+## 🔧 빌드 및 배포
 
-PyInstaller를 사용하여 실행 파일을 생성합니다:
+### 빌드 요구사항
+
+- Python 3.8 이상 + 가상 환경
+- PyInstaller (자동 설치됨)
+- **Inno Setup 6** (Setup 버전 생성 시 필요) - [다운로드](https://jrsoftware.org/isdl.php)
+
+### 빌드 방법
 
 ```bash
 # 가상 환경 활성화
 .venv\Scripts\activate
 
-# 빌드 스크립트 실행
+# 빌드 및 패키징 스크립트 실행
 python build.py
 ```
 
-빌드된 파일은 `release/` 폴더에 생성되며, 이전 버전은 자동으로 `release/archive/`에 보관됩니다.
+빌드 스크립트는 자동으로 다음 작업을 수행합니다:
+
+1. PyInstaller로 실행 파일 빌드
+2. **Portable 버전** 생성 (`.zip`)
+3. **Setup 버전** 생성 (`.exe` 인스톨러) - Inno Setup 필요
+4. 이전 버전을 archives 폴더로 이동
+
+### 배포 구조
+
+```
+release/
+├── screenblur_v1.0.0_portable.zip  ← 최신 Portable 버전
+├── screenblur_v1.0.0_setup.exe     ← 최신 Setup 버전
+└── archives/                        ← 이전 버전 아카이브
+    ├── portable/
+    │   ├── screenblur_v0.9.0_portable.zip
+    │   └── ...
+    └── installer/
+        ├── screenblur_v0.9.0_setup.exe
+        └── ...
+```
+
+### 배포 방식
+
+#### 📦 Portable 버전 (권장)
+- **파일명**: `screenblur_vX.X.X_portable.zip`
+- **특징**: 압축 해제 후 즉시 실행 가능
+- **사용법**:
+  1. ZIP 파일 다운로드
+  2. 원하는 폴더에 압축 해제
+  3. `ScreenBlur.exe` 실행
+
+#### 💿 Setup 버전
+- **파일명**: `screenblur_vX.X.X_setup.exe`
+- **특징**: 설치 프로그램 방식
+- **장점**:
+  - 바탕화면/시작메뉴 바로가기 자동 생성
+  - 시작 프로그램 등록 옵션
+  - 제어판에서 제거 가능
+  - 자동 업데이트 지원 (향후)
+- **사용법**:
+  1. Setup 파일 다운로드
+  2. 실행하여 설치 진행
+  3. 설치 완료 후 바로가기로 실행
 
 ## 🔄 동작 흐름
 
