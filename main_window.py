@@ -128,8 +128,9 @@ class MainWindow(QWidget):
         self.viewport.setGeometry(rect)
         self.interaction_handler.setGeometry(rect)
 
-        self.viewport.destroyed.connect(self.interaction_handler.close)
-        self.viewport.destroyed.connect(self.on_viewport_closed)
+        # destroyed 시그널 대신 커스텀 closing 시그널 사용 (타이밍 이슈 방지)
+        self.viewport.closing.connect(self.interaction_handler.close)
+        self.viewport.closing.connect(self.on_viewport_closed)
 
         self.viewport.show()
         self.interaction_handler.show()

@@ -2,12 +2,17 @@
 
 import sys
 from PySide6.QtWidgets import QWidget
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QCloseEvent
 
 from utils import apply_blur
 
 class Viewport(QWidget):
     """화면의 특정 영역을 흐리게 표시하는 순수 시각적 위젯"""
+
+    # 시그널 정의: 뷰포트가 닫히기 직전에 발생
+    closing = Signal()
+
     def __init__(self):
         """생성자: 뷰포트 창의 시각적 속성만 설정합니다."""
         super().__init__()
@@ -34,6 +39,11 @@ class Viewport(QWidget):
     def set_lock(self, checked):
         """'고정' 상태를 설정합니다 (위치와 크기 모두 고정)."""
         self.is_locked = checked
+
+    def closeEvent(self, event: QCloseEvent):
+        """뷰포트가 닫히기 전에 closing 시그널을 발생시킵니다."""
+        self.closing.emit()
+        event.accept()
 
     # 모든 마우스/네이티브 이벤트 핸들러는 제거됨
     # 이 위젯은 더 이상 직접적인 마우스 상호작용을 처리하지 않음
