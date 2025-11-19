@@ -5,10 +5,11 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction
 
 class InteractionHandler(QWidget):
-    """마우스 입력을 받아 뷰포트를 제어하는 투명한 창"""
-    def __init__(self, blur_window):
+    """마우스 입력을 받아 가리개를 제어하는 투명한 창"""
+    def __init__(self, blur_window, main_window):
         super().__init__()
         self.blur_window = blur_window
+        self.main_window = main_window  # 메인 윈도우 참조 저장
 
         # --- 창 설정: 보이지 않지만 마우스 이벤트를 받을 수 있도록 ---
         self.setWindowFlags(
@@ -16,7 +17,7 @@ class InteractionHandler(QWidget):
             Qt.WindowStaysOnTopHint |
             Qt.Tool
         )
-        
+
         # [수정] WA_TranslucentBackground는 마우스 입력을 통과시키므로 절대 사용하면 안 됨
         # self.setAttribute(Qt.WA_TranslucentBackground)
 
@@ -29,46 +30,48 @@ class InteractionHandler(QWidget):
         """우클릭 시 컨텍스트 메뉴를 표시합니다."""
         context_menu = QMenu(self)
 
-        always_on_top_action = QAction("항상 위에 표시", self, checkable=True)
-        always_on_top_action.setChecked(self.blur_window.is_always_on_top)
+        # 새 가리개 생성
+        new_viewport_action = QAction("새 가리개 생성", self)
+        new_viewport_action.triggered.connect(self.main_window.start_viewport_selection)
 
-        lock_position_action = QAction("위치 잠금", self, checkable=True)
-        lock_position_action.setChecked(self.blur_window.is_position_locked)
+        # 고정 (위치 + 크기)
+        lock_action = QAction("고정", self, checkable=True)
+        lock_action.setChecked(self.blur_window.is_locked)
+        lock_action.triggered.connect(self.blur_window.set_lock)
 
-        lock_size_action = QAction("크기 잠금", self, checkable=True)
-        lock_size_action.setChecked(self.blur_window.is_size_locked)
-
-        always_on_top_action.triggered.connect(self.blur_window.set_always_on_top)
-        lock_position_action.triggered.connect(self.blur_window.set_position_lock)
-        lock_size_action.triggered.connect(self.blur_window.set_size_lock)
-
-        close_action = QAction("뷰포트 닫기", self)
+        # 이 가리개 닫기
+        close_action = QAction("이 가리개 닫기", self)
         close_action.triggered.connect(self.blur_window.close)
 
-        context_menu.addAction(always_on_top_action)
-        context_menu.addAction(lock_position_action)
-        context_menu.addAction(lock_size_action)
+        # 프로그램 종료
+        quit_action = QAction("프로그램 종료", self)
+        quit_action.triggered.connect(self.main_window.quit_application)
+
+        context_menu.addAction(new_viewport_action)
+        context_menu.addSeparator()
+        context_menu.addAction(lock_action)
         context_menu.addSeparator()
         context_menu.addAction(close_action)
+        context_menu.addAction(quit_action)
 
         context_menu.exec(event.globalPos())
         
     def mousePressEvent(self, event):
         """마우스 드래그 시작 위치를 기록합니다."""
-        if self.blur_window.is_position_locked or event.button() != Qt.LeftButton:
+        if self.blur_window.is_locked or event.button() != Qt.LeftButton:
             return
         self._drag_start_position = event.globalPosition().toPoint()
 
     def mouseMoveEvent(self, event):
         """자신과 블러 창을 함께 움직입니다."""
-        if self.blur_window.is_position_locked or not hasattr(self, '_drag_start_position'):
+        if self.blur_window.is_locked or not hasattr(self, '_drag_start_position'):
             return
-        
+
         delta = event.globalPosition().toPoint() - self._drag_start_position
-        
+
         self.move(self.pos() + delta)
         self.blur_window.move(self.blur_window.pos() + delta)
-        
+
         self._drag_start_position = event.globalPosition().toPoint()
 
     def mouseReleaseEvent(self, event):

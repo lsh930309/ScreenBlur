@@ -1,22 +1,25 @@
 # selection_overlay.py
 
 from PySide6.QtWidgets import QWidget, QApplication
-from PySide6.QtCore import Qt, QRect, Signal
+from PySide6.QtCore import Qt, QRect, Signal, QTimer
 from PySide6.QtGui import QPainter, QBrush, QColor, QPen
 
 class SelectionOverlay(QWidget):
     """화면 전체를 덮어 사용자로부터 특정 영역을 선택받기 위한 투명 오버레이 위젯"""
-    
+
     # 시그널 정의: 사용자가 영역 선택을 완료했을 때 선택된 영역(QRect) 정보를 전달
     region_selected = Signal(QRect)
+    # 시그널 정의: 선택 작업이 완료되었을 때 (성공/취소 모두 포함)
+    finished = Signal()
 
     def __init__(self):
         """생성자: 오버레이 창의 기본 속성을 설정합니다."""
         super().__init__()
-        
+
         # --- 창 설정 ---
-        # 전체 화면 크기를 가져와 오버레이의 크기로 설정 (멀티 모니터 환경 포함)
-        screen_geometry = QApplication.instance().primaryScreen().virtualGeometry()
+        # 메인 모니터 영역만 덮도록 설정 (멀티 모니터 환경에서 가리개 생성 제한)
+        # geometry()는 메인 모니터만, virtualGeometry()는 모든 모니터 포함
+        screen_geometry = QApplication.instance().primaryScreen().geometry()
         self.setGeometry(screen_geometry)
         
         # 창의 테두리를 없애고, 항상 다른 창들 위에 표시되도록 설정
@@ -87,4 +90,9 @@ class SelectionOverlay(QWidget):
                 # region_selected 시그널에 선택된 영역 정보를 담아 보냄
                 self.region_selected.emit(global_rect)
 
-        self.close() # 영역 선택이 완료되면 오버레이 창을 닫음
+        # 선택 작업 완료 시그널 발생 (성공/취소 모두)
+        self.finished.emit()
+
+        # close()를 이벤트 큐에 예약하여 모든 시그널 핸들러가 완료된 후 실행
+        # 이렇게 하면 시그널 처리 중 객체가 삭제되는 것을 방지
+        QTimer.singleShot(0, self.close)
