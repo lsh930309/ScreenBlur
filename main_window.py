@@ -139,6 +139,11 @@ class MainWindow(QWidget):
         self.interaction_handler.show()  # 컨트롤러 표시 (필수!)
         print(f"[DEBUG] Viewport and InteractionHandler shown")
 
+        # show() 호출 후 실제 geometry 확인
+        print(f"[DEBUG] After show() - Viewport actual geometry: {self.viewport.geometry()}")
+        print(f"[DEBUG] After show() - Viewport isVisible: {self.viewport.isVisible()}")
+        print(f"[DEBUG] After show() - Viewport pos: {self.viewport.pos()}")
+
     def toggle_interaction_visibility(self, checked):
         if self.interaction_handler:
             self.interaction_handler.setVisible(not checked)
