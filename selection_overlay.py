@@ -1,7 +1,7 @@
 # selection_overlay.py
 
 from PySide6.QtWidgets import QWidget, QApplication
-from PySide6.QtCore import Qt, QRect, Signal
+from PySide6.QtCore import Qt, QRect, Signal, QTimer
 from PySide6.QtGui import QPainter, QBrush, QColor, QPen
 
 class SelectionOverlay(QWidget):
@@ -92,4 +92,7 @@ class SelectionOverlay(QWidget):
 
         # 선택 작업 완료 시그널 발생 (성공/취소 모두)
         self.finished.emit()
-        self.close() # 영역 선택이 완료되면 오버레이 창을 닫음
+
+        # close()를 이벤트 큐에 예약하여 모든 시그널 핸들러가 완료된 후 실행
+        # 이렇게 하면 시그널 처리 중 객체가 삭제되는 것을 방지
+        QTimer.singleShot(0, self.close)
