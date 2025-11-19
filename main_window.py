@@ -96,6 +96,9 @@ class MainWindow(QWidget):
         self.selection_overlay.show()
         
     def create_viewport(self, rect: QRect):
+        print(f"[DEBUG] create_viewport called with rect: {rect}")
+        print(f"[DEBUG] Rect details - x: {rect.x()}, y: {rect.y()}, width: {rect.width()}, height: {rect.height()}")
+
         # 좌표 유효성 검증 (멀티 모니터 환경 대응)
         # virtualGeometry()는 음수 좌표를 반환할 수 있음
         if rect.width() <= 0 or rect.height() <= 0:
@@ -106,6 +109,8 @@ class MainWindow(QWidget):
         if rect.x() < -10000 or rect.y() < -10000 or rect.x() > 10000 or rect.y() > 10000:
             print(f"경고: 유효하지 않은 좌표 범위 - x: {rect.x()}, y: {rect.y()}")
             return
+
+        print(f"[DEBUG] Validation passed, creating viewport...")
 
         # 이전 뷰포트가 있다면 명시적으로 삭제
         if self.viewport:
@@ -122,6 +127,8 @@ class MainWindow(QWidget):
 
         self.viewport.setGeometry(rect)
         self.interaction_handler.setGeometry(rect)
+        print(f"[DEBUG] Viewport geometry set to: {self.viewport.geometry()}")
+        print(f"[DEBUG] InteractionHandler geometry set to: {self.interaction_handler.geometry()}")
 
         self.viewport.destroyed.connect(self.interaction_handler.close)
         self.viewport.destroyed.connect(self.on_viewport_closed)
@@ -130,6 +137,7 @@ class MainWindow(QWidget):
 
         self.viewport.show()
         self.interaction_handler.show()  # 컨트롤러 표시 (필수!)
+        print(f"[DEBUG] Viewport and InteractionHandler shown")
 
     def toggle_interaction_visibility(self, checked):
         if self.interaction_handler:
