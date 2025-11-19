@@ -19,6 +19,7 @@ class Viewport(QWidget):
 
         # --- 상태 변수 초기화 ---
         self.is_locked = False  # 위치/크기 잠금 통합
+        self._blur_applied = False  # 블러 효과 적용 여부
 
         # --- 창 기본 속성 설정 ---
         # 항상 위에 표시는 필수 기능이므로 항상 활성화
@@ -33,12 +34,18 @@ class Viewport(QWidget):
 
         self.setGeometry(200, 200, 500, 400)
 
-        apply_blur(self.winId())
-
     # --- 외부에서 호출될 슬롯(Setter) 메서드들 ---
     def set_lock(self, checked):
         """'고정' 상태를 설정합니다 (위치와 크기 모두 고정)."""
         self.is_locked = checked
+
+    def showEvent(self, event):
+        """윈도우가 표시될 때 블러 효과를 적용합니다."""
+        super().showEvent(event)
+        if not self._blur_applied:
+            # 윈도우가 완전히 생성된 후 블러 효과 적용
+            apply_blur(self.winId())
+            self._blur_applied = True
 
     def closeEvent(self, event: QCloseEvent):
         """뷰포트가 닫히기 전에 closing 시그널을 발생시킵니다."""
