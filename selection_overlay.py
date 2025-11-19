@@ -17,7 +17,7 @@ class SelectionOverlay(QWidget):
         super().__init__()
 
         # --- 창 설정 ---
-        # 메인 모니터 영역만 덮도록 설정 (멀티 모니터 환경에서 뷰포트 생성 제한)
+        # 메인 모니터 영역만 덮도록 설정 (멀티 모니터 환경에서 가리개 생성 제한)
         # geometry()는 메인 모니터만, virtualGeometry()는 모든 모니터 포함
         screen_geometry = QApplication.instance().primaryScreen().geometry()
         self.setGeometry(screen_geometry)

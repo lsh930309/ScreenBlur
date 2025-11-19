@@ -5,7 +5,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction
 
 class InteractionHandler(QWidget):
-    """마우스 입력을 받아 뷰포트를 제어하는 투명한 창"""
+    """마우스 입력을 받아 가리개를 제어하는 투명한 창"""
     def __init__(self, blur_window, main_window):
         super().__init__()
         self.blur_window = blur_window
@@ -30,8 +30,8 @@ class InteractionHandler(QWidget):
         """우클릭 시 컨텍스트 메뉴를 표시합니다."""
         context_menu = QMenu(self)
 
-        # 새 뷰포트 생성
-        new_viewport_action = QAction("새 뷰포트 생성", self)
+        # 새 가리개 생성
+        new_viewport_action = QAction("새 가리개 생성", self)
         new_viewport_action.triggered.connect(self.main_window.start_viewport_selection)
 
         # 고정 (위치 + 크기)
@@ -39,8 +39,8 @@ class InteractionHandler(QWidget):
         lock_action.setChecked(self.blur_window.is_locked)
         lock_action.triggered.connect(self.blur_window.set_lock)
 
-        # 뷰포트 닫기
-        close_action = QAction("이 뷰포트 닫기", self)
+        # 이 가리개 닫기
+        close_action = QAction("이 가리개 닫기", self)
         close_action.triggered.connect(self.blur_window.close)
 
         # 프로그램 종료

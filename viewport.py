@@ -8,13 +8,13 @@ from PySide6.QtGui import QCloseEvent
 from utils import apply_blur
 
 class Viewport(QWidget):
-    """화면의 특정 영역을 흐리게 표시하는 순수 시각적 위젯"""
+    """화면의 특정 영역을 흐리게 표시하는 가리개 위젯"""
 
-    # 시그널 정의: 뷰포트가 닫히기 직전에 발생
+    # 시그널 정의: 가리개가 닫히기 직전에 발생
     closing = Signal()
 
     def __init__(self):
-        """생성자: 뷰포트 창의 시각적 속성만 설정합니다."""
+        """생성자: 가리개 창의 시각적 속성만 설정합니다."""
         super().__init__()
 
         # --- 상태 변수 초기화 ---
@@ -40,7 +40,7 @@ class Viewport(QWidget):
         self.is_locked = checked
 
     def showEvent(self, event):
-        """윈도우가 표시될 때 블러 효과를 적용합니다."""
+        """가리개가 표시될 때 블러 효과를 적용합니다."""
         super().showEvent(event)
         if not self._blur_applied:
             # 윈도우가 완전히 생성된 후 블러 효과 적용
@@ -48,7 +48,7 @@ class Viewport(QWidget):
             self._blur_applied = True
 
     def closeEvent(self, event: QCloseEvent):
-        """뷰포트가 닫히기 전에 closing 시그널을 발생시킵니다."""
+        """가리개가 닫히기 전에 closing 시그널을 발생시킵니다."""
         self.closing.emit()
         event.accept()
 
