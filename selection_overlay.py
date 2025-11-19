@@ -6,9 +6,11 @@ from PySide6.QtGui import QPainter, QBrush, QColor, QPen
 
 class SelectionOverlay(QWidget):
     """화면 전체를 덮어 사용자로부터 특정 영역을 선택받기 위한 투명 오버레이 위젯"""
-    
+
     # 시그널 정의: 사용자가 영역 선택을 완료했을 때 선택된 영역(QRect) 정보를 전달
     region_selected = Signal(QRect)
+    # 시그널 정의: 선택 작업이 완료되었을 때 (성공/취소 모두 포함)
+    finished = Signal()
 
     def __init__(self):
         """생성자: 오버레이 창의 기본 속성을 설정합니다."""
@@ -88,4 +90,6 @@ class SelectionOverlay(QWidget):
                 # region_selected 시그널에 선택된 영역 정보를 담아 보냄
                 self.region_selected.emit(global_rect)
 
+        # 선택 작업 완료 시그널 발생 (성공/취소 모두)
+        self.finished.emit()
         self.close() # 영역 선택이 완료되면 오버레이 창을 닫음

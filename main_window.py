@@ -97,8 +97,8 @@ class MainWindow(QWidget):
 
         self.selection_overlay = SelectionOverlay()
         self.selection_overlay.region_selected.connect(self.create_viewport)
-        # 오버레이가 닫힐 때 메인 창을 다시 표시
-        self.selection_overlay.destroyed.connect(self.show)
+        # 선택 작업 완료 시 메인 창을 다시 표시 (성공/취소 모두)
+        self.selection_overlay.finished.connect(self.show)
         self.selection_overlay.show()
         
     def create_viewport(self, rect: QRect):
