@@ -42,7 +42,6 @@ class MainWindow(QWidget):
         self.setWindowIcon(app_icon)
 
         self.setWindowTitle("Screen Blur")
-        self.setFixedSize(260, 280)
 
         self.selection_overlay = None
         self.viewport = None
@@ -154,6 +153,11 @@ class MainWindow(QWidget):
         self.close_all_button.clicked.connect(self.close_viewport)
         self.check_minimize_to_tray.toggled.connect(self.handle_minimize_to_tray_toggled)
         self.quit_button.clicked.connect(self.quit_application)
+
+        # --- UI 레이아웃 기반 최적 크기 자동 계산 및 고정 ---
+        self.adjustSize()  # 레이아웃이 필요로 하는 크기로 창 크기 조정
+        optimal_size = self.size()  # 조정된 크기 가져오기
+        self.setFixedSize(optimal_size)  # 해당 크기로 고정
 
     def quit_application(self):
         """애플리케이션을 종료합니다."""
