@@ -19,10 +19,9 @@ class BuildManager:
     def __init__(self):
         self.root_dir = Path(__file__).parent
         self.release_dir = self.root_dir / "release"
-        self.portable_dir = self.release_dir / "portable"
-        self.setup_dir = self.release_dir / "setup"
-        self.portable_archive_dir = self.portable_dir / "archives"
-        self.setup_archive_dir = self.setup_dir / "archives"
+        self.archive_dir = self.release_dir / "archives"
+        self.portable_archive_dir = self.archive_dir / "portable"
+        self.installer_archive_dir = self.archive_dir / "installer"
         self.build_dir = self.root_dir / "build"
         self.dist_dir = self.root_dir / "dist"
 
@@ -37,10 +36,9 @@ class BuildManager:
     def ensure_directories(self):
         """필요한 디렉토리 생성"""
         self.release_dir.mkdir(exist_ok=True)
-        self.portable_dir.mkdir(exist_ok=True)
-        self.setup_dir.mkdir(exist_ok=True)
-        self.portable_archive_dir.mkdir(exist_ok=True)
-        self.setup_archive_dir.mkdir(exist_ok=True)
+        self.archive_dir.mkdir(exist_ok=True)
+        self.portable_archive_dir.mkdir(parents=True, exist_ok=True)
+        self.installer_archive_dir.mkdir(parents=True, exist_ok=True)
         print(f"✓ 디렉토리 확인 완료")
 
     def check_venv(self):
@@ -89,8 +87,8 @@ class BuildManager:
         pattern = re.compile(r"screenblur_v(\d+\.\d+\.\d+)_portable\.zip")
         versions = []
 
-        if self.portable_dir.exists():
-            for file in self.portable_dir.glob("*.zip"):
+        if self.release_dir.exists():
+            for file in self.release_dir.glob("*.zip"):
                 match = pattern.match(file.name)
                 if match:
                     versions.append(match.group(1))
@@ -125,22 +123,22 @@ class BuildManager:
         """이전 버전을 archives 폴더로 이동"""
         moved_count = 0
 
-        # Portable 버전 아카이브
-        if self.portable_dir.exists():
-            zip_files = [f for f in self.portable_dir.glob("*.zip") if f.is_file()]
+        # Portable 버전 아카이브 (release/*.zip)
+        if self.release_dir.exists():
+            zip_files = [f for f in self.release_dir.glob("*_portable.zip") if f.is_file()]
             for zip_file in zip_files:
                 dest = self.portable_archive_dir / zip_file.name
                 shutil.move(str(zip_file), str(dest))
                 print(f"  → {zip_file.name} (portable)")
                 moved_count += 1
 
-        # Setup 버전 아카이브
-        if self.setup_dir.exists():
-            setup_files = [f for f in self.setup_dir.glob("*.exe") if f.is_file()]
+        # Setup 버전 아카이브 (release/*_setup.exe)
+        if self.release_dir.exists():
+            setup_files = [f for f in self.release_dir.glob("*_setup.exe") if f.is_file()]
             for setup_file in setup_files:
-                dest = self.setup_archive_dir / setup_file.name
+                dest = self.installer_archive_dir / setup_file.name
                 shutil.move(str(setup_file), str(dest))
-                print(f"  → {setup_file.name} (setup)")
+                print(f"  → {setup_file.name} (installer)")
                 moved_count += 1
 
         if moved_count > 0:
@@ -193,7 +191,7 @@ class BuildManager:
             return False
 
         zip_filename = f"screenblur_v{version}_portable.zip"
-        zip_path = self.portable_dir / zip_filename
+        zip_path = self.release_dir / zip_filename
 
         # ZIP 파일 생성
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
@@ -246,7 +244,7 @@ class BuildManager:
 
             # 생성된 setup 파일 찾기
             setup_filename = f"screenblur_v{version}_setup.exe"
-            setup_file = self.setup_dir / setup_filename
+            setup_file = self.release_dir / setup_filename
 
             if setup_file.exists():
                 print(f"   파일 크기: {setup_file.stat().st_size / 1024 / 1024:.2f} MB")
@@ -324,12 +322,14 @@ class BuildManager:
         print("=" * 60)
 
         if portable_success:
-            print(f"\n📦 Portable 버전: release/portable/screenblur_v{version}_portable.zip")
+            print(f"\n📦 Portable 버전: release/screenblur_v{version}_portable.zip")
 
         if setup_success:
-            print(f"💿 Setup 버전: release/setup/screenblur_v{version}_setup.exe")
+            print(f"💿 Setup 버전: release/screenblur_v{version}_setup.exe")
 
-        print(f"\n📁 이전 버전: release/portable/archives, release/setup/archives")
+        print(f"\n📁 이전 버전 아카이브:")
+        print(f"   - Portable: release/archives/portable/")
+        print(f"   - Installer: release/archives/installer/")
         print()
 
 if __name__ == "__main__":

@@ -19,7 +19,7 @@ DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 ; 출력 파일 설정
-OutputDir={#SourcePath}\release\setup
+OutputDir={#SourcePath}\release
 OutputBaseFilename=screenblur_v{#MyAppVersion}_setup
 ; 압축 설정
 Compression=lzma2/max

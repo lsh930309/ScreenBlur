@@ -120,14 +120,13 @@ python build.py
 
 ```
 release/
-├── portable/
-│   ├── screenblur_v1.0.0_portable.zip  ← 최신 Portable 버전
-│   └── archives/                        ← 이전 Portable 버전들
-│       ├── screenblur_v0.9.0_portable.zip
-│       └── ...
-└── setup/
-    ├── screenblur_v1.0.0_setup.exe     ← 최신 Setup 버전
-    └── archives/                        ← 이전 Setup 버전들
+├── screenblur_v1.0.0_portable.zip  ← 최신 Portable 버전
+├── screenblur_v1.0.0_setup.exe     ← 최신 Setup 버전
+└── archives/                        ← 이전 버전 아카이브
+    ├── portable/
+    │   ├── screenblur_v0.9.0_portable.zip
+    │   └── ...
+    └── installer/
         ├── screenblur_v0.9.0_setup.exe
         └── ...
 ```
