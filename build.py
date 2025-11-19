@@ -55,30 +55,26 @@ class BuildManager:
 
         print(f"✓ 가상 환경 확인 완료: {self.venv_dir}")
 
-    def install_pyinstaller(self):
-        """PyInstaller 설치 확인 및 설치"""
+    def install_dependencies(self):
+        """requirements.txt의 의존성 설치"""
+        requirements_file = self.root_dir / "requirements.txt"
+
+        if not requirements_file.exists():
+            print("❌ requirements.txt 파일을 찾을 수 없습니다.")
+            sys.exit(1)
+
+        print("의존성을 확인하고 설치합니다...")
         try:
-            result = subprocess.run(
-                [str(self.venv_python), "-m", "pip", "show", "pyinstaller"],
+            subprocess.run(
+                [str(self.venv_pip), "install", "-r", str(requirements_file)],
+                check=True,
                 capture_output=True,
                 text=True
             )
-
-            if result.returncode == 0:
-                print("✓ PyInstaller가 이미 설치되어 있습니다.")
-                return
-        except Exception:
-            pass
-
-        print("PyInstaller를 설치합니다...")
-        try:
-            subprocess.run(
-                [str(self.venv_pip), "install", "pyinstaller"],
-                check=True
-            )
-            print("✓ PyInstaller 설치 완료")
+            print("✓ 의존성 설치 완료")
         except subprocess.CalledProcessError as e:
-            print(f"❌ PyInstaller 설치 실패: {e}")
+            print(f"❌ 의존성 설치 실패: {e}")
+            print(f"   에러 출력: {e.stderr}")
             sys.exit(1)
 
     def get_version_from_user(self):
@@ -291,8 +287,8 @@ class BuildManager:
         # 2. 가상 환경 확인
         self.check_venv()
 
-        # 3. PyInstaller 설치 확인
-        self.install_pyinstaller()
+        # 3. 의존성 설치
+        self.install_dependencies()
 
         # 4. 버전 입력
         version = self.get_version_from_user()
