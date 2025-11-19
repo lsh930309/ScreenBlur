@@ -38,8 +38,8 @@ class MainWindow(QWidget):
         self.setWindowIcon(app_icon)
 
         self.setWindowTitle("블러 뷰포트 컨트롤러")
-        self.setGeometry(100, 100, 350, 300)
-        
+        self.setGeometry(100, 100, 300, 200)
+
         self.selection_overlay = None
         self.viewport = None
         self.interaction_handler = None
@@ -48,42 +48,32 @@ class MainWindow(QWidget):
         self.tray_icon = SystemTrayIcon(app_icon, self)
         self.tray_icon.show_window_requested.connect(self.show_from_tray)
         self.tray_icon.show()
-        
+
         main_layout = QVBoxLayout(self)
-        viewport_control_layout = QHBoxLayout()
+
+        # 뷰포트 생성 버튼
         self.create_viewport_button = QPushButton("새 뷰포트 생성")
-        self.create_viewport_button.setStyleSheet("background-color: #3498db; color: white; padding: 5px;")
-        self.close_viewport_button = QPushButton("뷰포트 닫기")
-        self.close_viewport_button.setStyleSheet("background-color: #e74c3c; color: white; padding: 5px;")
-        viewport_control_layout.addWidget(self.create_viewport_button)
-        viewport_control_layout.addWidget(self.close_viewport_button)
-        properties_group = QGroupBox("뷰포트 속성")
-        properties_layout = QFormLayout()
-        self.check_always_on_top = QCheckBox("항상 위에 표시")
-        self.check_always_on_top.setChecked(True)
-        self.check_interaction_lock = QCheckBox("상호작용 잠금")
-        self.check_interaction_lock.setChecked(False)
-        self.check_lock_position = QCheckBox("위치 잠금")
-        self.check_lock_size = QCheckBox("크기 잠금")
-        properties_layout.addRow(self.check_always_on_top)
-        properties_layout.addRow(self.check_interaction_lock)
-        properties_layout.addRow(self.check_lock_position)
-        properties_layout.addRow(self.check_lock_size)
-        properties_group.setLayout(properties_layout)
+        self.create_viewport_button.setStyleSheet("background-color: #3498db; color: white; padding: 10px; font-size: 14px;")
+
+        # 설정 그룹
+        settings_group = QGroupBox("설정")
+        settings_layout = QFormLayout()
+        self.check_minimize_to_tray = QCheckBox("닫기 시 트레이로 최소화")
+        self.check_minimize_to_tray.setChecked(True)  # 기본값: 활성화
+        settings_layout.addRow(self.check_minimize_to_tray)
+        settings_group.setLayout(settings_layout)
+
+        # 프로그램 종료 버튼
         self.quit_button = QPushButton("프로그램 종료")
-        main_layout.addLayout(viewport_control_layout)
-        main_layout.addWidget(properties_group)
+        self.quit_button.setStyleSheet("background-color: #e74c3c; color: white; padding: 5px;")
+
+        main_layout.addWidget(self.create_viewport_button)
+        main_layout.addWidget(settings_group)
         main_layout.addWidget(self.quit_button)
-        
+
         # --- 시그널-슬롯 연결 ---
         self.create_viewport_button.clicked.connect(self.start_viewport_selection)
-        self.close_viewport_button.clicked.connect(self.close_viewport)
         self.quit_button.clicked.connect(self.quit_application)
-        
-        self.check_always_on_top.toggled.connect(self.handle_always_on_top_toggled)
-        self.check_interaction_lock.toggled.connect(self.toggle_interaction_visibility)
-        self.check_lock_position.toggled.connect(self.handle_position_lock_toggled)
-        self.check_lock_size.toggled.connect(self.handle_size_lock_toggled)
 
     def quit_application(self):
         self._is_quitting = True
@@ -97,9 +87,16 @@ class MainWindow(QWidget):
 
         self.selection_overlay = SelectionOverlay()
         self.selection_overlay.region_selected.connect(self.create_viewport)
-        # 선택 작업 완료 시 메인 창을 다시 표시 (성공/취소 모두)
-        self.selection_overlay.finished.connect(self.show)
+        # 뷰포트 생성 후에는 메인 GUI를 다시 표시하지 않음 (트레이에서만 접근 가능)
+        # 선택이 취소된 경우(뷰포트 생성 없이 finished만 호출)에만 다시 표시
+        self.selection_overlay.finished.connect(self._on_selection_finished)
         self.selection_overlay.show()
+
+    def _on_selection_finished(self):
+        """선택 작업 완료 시 호출. 뷰포트가 생성되지 않은 경우에만 메인 GUI 표시."""
+        # 뷰포트가 생성되지 않았다면 메인 GUI를 다시 표시
+        if not self.viewport:
+            self.show()
         
     def create_viewport(self, rect: QRect):
         """선택된 영역에 블러 뷰포트를 생성합니다."""
@@ -123,8 +120,10 @@ class MainWindow(QWidget):
             self.interaction_handler.deleteLater()
             self.interaction_handler = None
 
+        # 뷰포트 생성 (항상 위에 표시는 기본 활성화)
         self.viewport = Viewport()
-        self.interaction_handler = InteractionHandler(self.viewport)
+        # InteractionHandler 생성 시 main_window 참조 전달
+        self.interaction_handler = InteractionHandler(self.viewport, self)
 
         self.viewport.setGeometry(rect)
         self.interaction_handler.setGeometry(rect)
@@ -132,50 +131,39 @@ class MainWindow(QWidget):
         self.viewport.destroyed.connect(self.interaction_handler.close)
         self.viewport.destroyed.connect(self.on_viewport_closed)
 
-        self.update_viewport_from_ui()
-
         self.viewport.show()
         self.interaction_handler.show()
 
-    def toggle_interaction_visibility(self, checked):
-        if self.interaction_handler:
-            self.interaction_handler.setVisible(not checked)
-
     def close_viewport(self):
+        """현재 뷰포트를 닫습니다."""
         if self.viewport:
             self.viewport.close()
 
     def on_viewport_closed(self):
+        """뷰포트가 닫혔을 때 호출되는 콜백."""
         self.viewport = None
         self.interaction_handler = None
 
     def show_from_tray(self):
+        """트레이 아이콘에서 메인 창을 표시합니다."""
         self.showNormal()
         self.activateWindow()
 
     def closeEvent(self, event: QCloseEvent):
+        """메인 창 닫기 이벤트 핸들러."""
         if self._is_quitting:
+            # 프로그램 종료 시
             self.close_viewport()
             event.accept()
         else:
-            event.ignore()
-            self.hide()
-        
-    def update_viewport_from_ui(self):
-        if not self.viewport: return
-        self.viewport.set_always_on_top(self.check_always_on_top.isChecked())
-        self.viewport.set_position_lock(self.check_lock_position.isChecked())
-        self.viewport.set_size_lock(self.check_lock_size.isChecked())
-        self.toggle_interaction_visibility(self.check_interaction_lock.isChecked())
-
-    def handle_always_on_top_toggled(self, checked):
-        if self.viewport:
-            self.viewport.set_always_on_top(checked)
-
-    def handle_position_lock_toggled(self, checked):
-        if self.viewport:
-            self.viewport.set_position_lock(checked)
-
-    def handle_size_lock_toggled(self, checked):
-        if self.viewport:
-            self.viewport.set_size_lock(checked)
+            # 일반 닫기 시
+            if self.check_minimize_to_tray.isChecked():
+                # 트레이로 최소화 옵션이 활성화되어 있으면 숨김
+                event.ignore()
+                self.hide()
+            else:
+                # 옵션이 비활성화되어 있으면 완전히 종료
+                self._is_quitting = True
+                self.close_viewport()
+                event.accept()
+                QApplication.instance().quit()
