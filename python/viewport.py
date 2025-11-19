@@ -5,7 +5,7 @@ from PySide6.QtWidgets import QWidget
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QCloseEvent
 
-from utils import apply_blur
+from .utils import apply_blur
 
 class Viewport(QWidget):
     """화면의 특정 영역을 흐리게 표시하는 가리개 위젯"""

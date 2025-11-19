@@ -7,11 +7,11 @@ from PySide6.QtWidgets import (QWidget, QPushButton, QVBoxLayout, QGroupBox,
 from PySide6.QtCore import QRect, Qt
 from PySide6.QtGui import QCloseEvent, QIcon, QPalette
 
-from viewport import Viewport
-from selection_overlay import SelectionOverlay
-from system_tray import SystemTrayIcon
-from interaction_handler import InteractionHandler
-from settings import SettingsManager
+from .viewport import Viewport
+from .selection_overlay import SelectionOverlay
+from .system_tray import SystemTrayIcon
+from .interaction_handler import InteractionHandler
+from .settings import SettingsManager
 
 def resource_path(relative_path):
     """PyInstaller 환경에서 올바른 리소스 경로를 반환합니다.
