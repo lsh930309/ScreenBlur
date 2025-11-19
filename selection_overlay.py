@@ -15,11 +15,10 @@ class SelectionOverlay(QWidget):
         super().__init__()
 
         # --- 창 설정 ---
-        # 전체 화면 크기를 가져와 오버레이의 크기로 설정 (멀티 모니터 환경 포함)
-        screen_geometry = QApplication.instance().primaryScreen().virtualGeometry()
-        print(f"[DEBUG] SelectionOverlay virtualGeometry: {screen_geometry}")
+        # 메인 모니터 영역만 덮도록 설정 (멀티 모니터 환경에서 뷰포트 생성 제한)
+        # geometry()는 메인 모니터만, virtualGeometry()는 모든 모니터 포함
+        screen_geometry = QApplication.instance().primaryScreen().geometry()
         self.setGeometry(screen_geometry)
-        print(f"[DEBUG] SelectionOverlay widget geometry: {self.geometry()}")
         
         # 창의 테두리를 없애고, 항상 다른 창들 위에 표시되도록 설정
         # 배경을 투명하게 만들어 아래의 화면이 보이도록 함
@@ -79,16 +78,12 @@ class SelectionOverlay(QWidget):
         """마우스 버튼에서 손을 뗐을 때 호출됩니다. 선택 완료 신호를 보냅니다."""
         if self.start_point and self.end_point:
             selection_rect = QRect(self.start_point, self.end_point).normalized()
-            print(f"[DEBUG] Local selection_rect: {selection_rect}")
 
             # 너비와 높이가 0보다 큰 유효한 영역이 선택되었는지 확인
             if selection_rect.width() > 0 and selection_rect.height() > 0:
                 # 위젯 로컬 좌표를 전역 화면 좌표로 변환
                 global_top_left = self.mapToGlobal(selection_rect.topLeft())
                 global_rect = QRect(global_top_left, selection_rect.size())
-                print(f"[DEBUG] Global top-left: {global_top_left}")
-                print(f"[DEBUG] Global rect: {global_rect}")
-                print(f"[DEBUG] Widget position: {self.pos()}")
 
                 # region_selected 시그널에 선택된 영역 정보를 담아 보냄
                 self.region_selected.emit(global_rect)

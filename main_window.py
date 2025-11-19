@@ -91,26 +91,27 @@ class MainWindow(QWidget):
         QApplication.instance().quit()
 
     def start_viewport_selection(self):
+        """뷰포트 선택 모드를 시작합니다. 메인 창을 숨기고 오버레이를 표시합니다."""
+        # 메인 창을 숨겨서 선택 영역에 집중하도록 함
+        self.hide()
+
         self.selection_overlay = SelectionOverlay()
         self.selection_overlay.region_selected.connect(self.create_viewport)
+        # 오버레이가 닫힐 때 메인 창을 다시 표시
+        self.selection_overlay.destroyed.connect(self.show)
         self.selection_overlay.show()
         
     def create_viewport(self, rect: QRect):
-        print(f"[DEBUG] create_viewport called with rect: {rect}")
-        print(f"[DEBUG] Rect details - x: {rect.x()}, y: {rect.y()}, width: {rect.width()}, height: {rect.height()}")
-
-        # 좌표 유효성 검증 (멀티 모니터 환경 대응)
-        # virtualGeometry()는 음수 좌표를 반환할 수 있음
+        """선택된 영역에 블러 뷰포트를 생성합니다."""
+        # 좌표 유효성 검증
         if rect.width() <= 0 or rect.height() <= 0:
             print(f"경고: 유효하지 않은 뷰포트 크기 - width: {rect.width()}, height: {rect.height()}")
             return
 
-        # 극단적인 음수 좌표 검증 (오류 방지)
+        # 극단적인 좌표 검증 (오류 방지)
         if rect.x() < -10000 or rect.y() < -10000 or rect.x() > 10000 or rect.y() > 10000:
             print(f"경고: 유효하지 않은 좌표 범위 - x: {rect.x()}, y: {rect.y()}")
             return
-
-        print(f"[DEBUG] Validation passed, creating viewport...")
 
         # 이전 뷰포트가 있다면 명시적으로 삭제
         if self.viewport:
@@ -127,8 +128,6 @@ class MainWindow(QWidget):
 
         self.viewport.setGeometry(rect)
         self.interaction_handler.setGeometry(rect)
-        print(f"[DEBUG] Viewport geometry set to: {self.viewport.geometry()}")
-        print(f"[DEBUG] InteractionHandler geometry set to: {self.interaction_handler.geometry()}")
 
         self.viewport.destroyed.connect(self.interaction_handler.close)
         self.viewport.destroyed.connect(self.on_viewport_closed)
@@ -136,13 +135,7 @@ class MainWindow(QWidget):
         self.update_viewport_from_ui()
 
         self.viewport.show()
-        self.interaction_handler.show()  # 컨트롤러 표시 (필수!)
-        print(f"[DEBUG] Viewport and InteractionHandler shown")
-
-        # show() 호출 후 실제 geometry 확인
-        print(f"[DEBUG] After show() - Viewport actual geometry: {self.viewport.geometry()}")
-        print(f"[DEBUG] After show() - Viewport isVisible: {self.viewport.isVisible()}")
-        print(f"[DEBUG] After show() - Viewport pos: {self.viewport.pos()}")
+        self.interaction_handler.show()
 
     def toggle_interaction_visibility(self, checked):
         if self.interaction_handler:
